@@ -765,8 +765,11 @@ namespace{
 
 			if (!yeskernel)
 			{
-				Function::ArgumentListType &args = F -> getArgumentList();
-				for (auto &a :  args )
+				//Function::ArgumentListType &args = F -> getArgumentList();
+				//for (auto &a :  args )
+				//	p_stackzone = (Value*) &a;
+
+				for (auto &a :  F->args() )
 					p_stackzone = (Value*) &a;
 
 				if ( p_stackzone->getType() != Type::getInt8PtrTy(C) )
@@ -990,8 +993,11 @@ namespace{
 		for(auto &f: listF)
 		{
 			Function* F = M.getFunction(f);
-			Function::ArgumentListType &args = F -> getArgumentList();
-			for (auto &a :  args )
+			//Function::ArgumentListType &args = F -> getArgumentList();
+			//for (auto &a :  args )
+			//	p_stackzone = (Value*) &a;
+
+			for (auto &a :  F->args() )
 				p_stackzone = (Value*) &a;
 		//	p_stackzone -> dump();
 
@@ -1177,7 +1183,7 @@ namespace{
 
 				std::string newCallee = calleeName.erase( calleeName.find("2delete"), 7) ;
 				Function* newF = op->getModule()->getFunction(newCallee);
-				Function::ArgumentListType &args = f -> getArgumentList();
+				//Function::ArgumentListType &args = f -> getArgumentList(); //AQUI
 				std::vector<Value*> newargs;
 				for (int ii=0; ii<numArgs; ii++)
 					newargs.push_back( op ->getArgOperand(ii)  );
@@ -1293,7 +1299,7 @@ namespace{
 
 				std::string newCallee = calleeName.erase( calleeName.find("2delete"), 7) ;
 				Function* newF = op->getModule()->getFunction(newCallee);
-				Function::ArgumentListType &args = f -> getArgumentList();
+				//Function::ArgumentListType &args = f -> getArgumentList(); // AQUI
 				std::vector<Value*> newargs;
 				for (int ii=0; ii<numArgs; ii++)
 					newargs.push_back( op ->getArgOperand(ii)  );
@@ -1358,7 +1364,7 @@ namespace{
 	{
 		LLVMContext &C = M.getContext();
 
-		Function::ArgumentListType &args = F-> getArgumentList();
+		//Function::ArgumentListType &args = F-> getArgumentList();
 		std::string fname = F->getName().str();
 
 		/////
@@ -1366,7 +1372,8 @@ namespace{
 
                         //construct the new function
                         std::vector<Type*> argsTy;
-                        for ( auto &a : args)
+                        //for ( auto &a : args)
+						for ( auto &a : F->args())
                                 argsTy.push_back( a.getType() );
                         argsTy.push_back( Type::getInt8PtrTy(C) );
                         FunctionType* FuncTy = FunctionType::get( F->getReturnType(), argsTy, false);
@@ -1377,9 +1384,12 @@ namespace{
                         fc->setCallingConv(CallingConv::C); //here C means C calling convention
 
                         //set names for each argument
-                        Function::ArgumentListType &newargs = fc -> getArgumentList();
-                        Function::ArgumentListType::iterator newiter = newargs.begin();
-                        for ( auto &a: args)
+                        //Function::ArgumentListType &newargs = fc -> getArgumentList();
+                        //Function::ArgumentListType::iterator newiter = newargs.begin();
+						Function::arg_iterator newiter = F->args().arg_begin(); // AQUI
+
+                        //for ( auto &a: args)
+						for ( auto &a : F->args())
                         {
                                 newiter->setName( a.getName() );
                                 newiter++;
@@ -1513,11 +1523,12 @@ namespace{
                                 continue;
 			}
 
-			Function::ArgumentListType &args = F-> getArgumentList();
+			//Function::ArgumentListType &args = F-> getArgumentList();
 
 			//construct the new function
 			std::vector<Type*> argsTy;
-			for ( auto &a : args)
+			//for ( auto &a : args)
+			for ( auto &a : F->args())
 				argsTy.push_back( a.getType() );
 			argsTy.push_back( Type::getInt8PtrTy(C) );//typetag
 		//	argsTy.push_back( Type::getInt8PtrTy(C) );//typetag
@@ -1530,9 +1541,12 @@ namespace{
 			fc->setCallingConv(CallingConv::C); //here C means C calling convention
 
 			//set names for each argument
-			Function::ArgumentListType &newargs = fc -> getArgumentList();
-			Function::ArgumentListType::iterator newiter = newargs.begin();
-			for ( auto &a: args)
+			//Function::ArgumentListType &newargs = fc -> getArgumentList();
+			//Function::ArgumentListType::iterator newiter = newargs.begin();
+			Function::arg_iterator newiter = F->args().arg_begin(); // AQUI
+
+			//for ( auto &a: args)
+			for ( auto &a: F->args())
 			{
 			//	a.dump();
 			//	newiter->dump();
@@ -1824,11 +1838,13 @@ namespace{
 			}
 
 			errs() << fname << "\n";
-			Function::ArgumentListType &args = F-> getArgumentList();
+
+			//Function::ArgumentListType &args = F-> getArgumentList();
 
 			//construct the new function
 			std::vector<Type*> argsTy;
-			for ( auto &a : args)
+			//for ( auto &a : args)
+			for ( auto &a : F->args())
 				argsTy.push_back( a.getType() );
 			argsTy.push_back( Type::getInt8PtrTy(C) );
 		//	argsTy.push_back( Type::getInt8PtrTy(C) );
@@ -1842,9 +1858,12 @@ namespace{
 			fc->setCallingConv(CallingConv::C); //here C means C calling convention
 
 			//set names for each argument
-			Function::ArgumentListType &newargs = fc -> getArgumentList();
-			Function::ArgumentListType::iterator newiter = newargs.begin();
-			for ( auto &a: args)
+			//Function::ArgumentListType &newargs = fc -> getArgumentList();
+			//Function::ArgumentListType::iterator newiter = newargs.begin();
+			Function::arg_iterator newiter = F->args().arg_begin(); // AQUI
+
+			//for ( auto &a: args)
+			for ( auto &a: F->args())
 			{
 			//	a.dump();
 			//	newiter->dump();
@@ -2049,7 +2068,8 @@ namespace{
 				//	ai2->setAlignment(8);
 				//	ai3->setAlignment(8);
 
-		                        Function::ArgumentListType &args = bb_func -> getArgumentList();
+		                        //Function::ArgumentListType &args = bb_func -> getArgumentList();
+
 					errs() << " asdfgg size = "  << args.size() << "\n";
 
 					Value* arg_ptrhead; //, *arg_stack; //, *arg_stackHeight;
@@ -2066,7 +2086,8 @@ namespace{
                                                 ii++;
                                         }
 */
-                 			for (auto &a :  args )
+                 			//for (auto &a :  args )
+							for (auto &a :  bb_func->args() )
 					{
 						if ( ii==args.size()-1 )
 							arg_ptrhead = (Value*) &a;
@@ -2192,7 +2213,8 @@ namespace{
 					BasicBlock* b2 = op->getUnwindDest();
 					///
 
-					Function::ArgumentListType &args = f -> getArgumentList();
+					//Function::ArgumentListType &args = f -> getArgumentList(); AQUI
+
 					std::vector<Value*> newargs;
                                         for (int ii=0; ii<numArgs; ii++)
 						newargs.push_back( op ->getArgOperand(ii)  );
@@ -2237,7 +2259,9 @@ namespace{
 					IRBuilder<> builder(&(*BI));
 					///
 					///
-					Function::ArgumentListType &args = f -> getArgumentList();
+
+					//Function::ArgumentListType &args = f -> getArgumentList();
+
 					std::vector<Value*> newargs;
                                         for (int ii=0; ii<numArgs; ii++)
 						newargs.push_back( op ->getArgOperand(ii)  );
@@ -2700,7 +2724,8 @@ namespace{
 		if (yeskernel && bb_name == "entry" ) //insert intialization into Kernel's entry block
 		{
 			errs() << "location : "<< f_name.str() << ". in entry block\n";
-			Function::ArgumentListType &args = bb_func -> getArgumentList();
+
+			//Function::ArgumentListType &args = bb_func -> getArgumentList();
 
 			int ii=0; //the next 10 lines are very iffy
 			Value* arg1, *arg2, *arg3;
@@ -2715,7 +2740,8 @@ namespace{
                                 ii++;
                         }
 */
- 			for (auto &a :  args )
+			//for (auto &a :  args )
+ 			for (auto &a :  bb_func->args())
 			{
 				if ( ii==args.size()-1 )
 					arg1 = (Value*) &a;
