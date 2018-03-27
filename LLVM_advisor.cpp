@@ -60,7 +60,7 @@ namespace{
 	// pass: first pass
 	// for memory load/store, function call and return
     struct instru_host : public ModulePass{
-        static char ID;  
+        static char ID;
         Function* hook1;
         Function* hook2;
         Function* hook3;
@@ -73,7 +73,7 @@ namespace{
 	Function* hookFCall;
 	Function* hookMallocEvent;
 	bool flag1; // tracks whether a caller name global Variable created or not
-	Value* str_fname=NULL; 
+	Value* str_fname=NULL;
 	Value* ptr_fname=NULL;
 
         instru_host() : ModulePass(ID) {}
@@ -81,7 +81,7 @@ namespace{
         virtual bool runOnModule(Module &M)
         {
 		LLVMContext &C = M.getContext();
-		Type* VoidTy = Type::getVoidTy(C); 
+		Type* VoidTy = Type::getVoidTy(C);
                 errs() << "\n================== 1st pass: instru_host ==============\n\n";
 
             	Constant *hookFunc1; Constant *hookFunc2;
@@ -103,7 +103,7 @@ namespace{
 		hookFuncMallocEvent = M.getOrInsertFunction("recordMEvent", VoidTy, Type::getInt8PtrTy(C), Type::getInt64Ty(C),  Type::getInt32Ty(C),  Type::getInt32Ty(C), NULL);
 
 //		Type::getFloatTy(M.getContext())  for float
-		hook1= cast<Function>(hookFunc1); hook2= cast<Function>(hookFunc2); hook3= cast<Function>(hookFunc3); 
+		hook1= cast<Function>(hookFunc1); hook2= cast<Function>(hookFunc2); hook3= cast<Function>(hookFunc3);
 		hook4= cast<Function>(hookFunc4); hookEA= cast<Function>(hookFuncEA);
                 hookRetMain = cast<Function>(hookFuncRetMain);
                 hookString = cast<Function>(hookFuncString);
@@ -132,12 +132,12 @@ namespace{
 		Value* THREE = ConstantInt::get(Type::getInt32Ty(C), 3);
 
 		Function* bb_func = BB->getParent();
-		StringRef f_name = bb_func->getName();	
-		std::string func_name = f_name.str();	
+		StringRef f_name = bb_func->getName();
+		std::string func_name = f_name.str();
 		std::string bb_name = BB->getName().str();
 		//errs() << func_name << " : " << bb_name << "\n" ;
 		int cnt = 0;
-	
+
 		IRBuilder<> bbbuilder(&(*BB));
 		if(!flag1)
 		{
@@ -149,24 +149,24 @@ namespace{
 	    	for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
             	{
 			cnt++;
-		    	if (cnt==1 ) 
+		    	if (cnt==1 )
 			{
 				if( (bb_name.find("entry") != std::string::npos)  &&  (func_name.find("main") != std::string::npos)  )
 				{      // insert AllocaInst into entry block of main function.
 					errs() << "I am in main() function's entry block\n";
 				}
-				
+
 				if( bb_name.find("kcall.end") != std::string::npos  &&  (bb_name.find("1") == std::string::npos) )
 				{
 					errs() << "I am in kcall.end block \n";
-				}	
+				}
 			}
 
 			if ( auto *op = dyn_cast<ResumeInst>( &(*BI) ) )
 			{
                                 errs() << " [[[\nI am Resume Inst!  :    "  << *BI <<  "\n ]]]\n";
 				continue;
-			}	
+			}
 			if ( auto *op = dyn_cast<ReturnInst>( &(*BI) ) )
                         {
                         //      errs() << " [[[\nI am ReturnInst !  :    "  << *BI <<  "\n";
@@ -181,12 +181,12 @@ namespace{
 				IRBuilder<> builder(op);
 				Value* args[] = { ptr_fname, THREE};
 			//	CallInst *MI = builder.CreateCall(hookString, args);
-				
+
 				if (fname=="main")
 				{
 					errs() << "!!!!!!!!! main\n";
 					Instruction *newInst = CallInst::Create(hookRetMain,"");
-                                	newInst->insertBefore( &(*BI));		
+                                	newInst->insertBefore( &(*BI));
 				}
                         //       errs() << " ]]]\n\n" ;
 				continue;
@@ -196,21 +196,21 @@ namespace{
 			{
 				Function* f = op->getCalledFunction();
 				if (!f) //this check is important for: %call =  call deferenceble bla bla...
-					continue;	
+					continue;
 				StringRef callee = op->getCalledFunction() -> getName();
                                 std::string calleeName = callee.str();
 
-				if( (calleeName.find("llvm.dbg") != std::string::npos)  || (calleeName.find("llvm.stack") != std::string::npos)  
+				if( (calleeName.find("llvm.dbg") != std::string::npos)  || (calleeName.find("llvm.stack") != std::string::npos)
 				   || (calleeName.find("llvm.lifetime") != std::string::npos) || (calleeName.find("llvm.memcpy") != std::string::npos)
-				   || (calleeName.find("dim3") != std::string::npos) || (calleeName.find("basic_ostream") != std::string::npos) 
-				   || (calleeName.find("_ZNS") != std::string::npos) 
+				   || (calleeName.find("dim3") != std::string::npos) || (calleeName.find("basic_ostream") != std::string::npos)
+				   || (calleeName.find("_ZNS") != std::string::npos)
 				   || (calleeName.find("cudaLaunch") != std::string::npos) || (calleeName.find("cudaSetupArgument") != std::string::npos )
 					)
 					continue;
 
 				StringRef caller = op->getFunction() -> getName();
 				std::string callerName = caller.str();
-			
+
 				if( (callerName.find("__cuda_register_global") != std::string::npos)  || (callerName.find("__cuda_module_") != std::string::npos) )
 					continue;
 
@@ -240,14 +240,14 @@ namespace{
 					//builder.CreateCall(hook3, builder.getInt32(l) );
 					builder.CreateCall(hookFCall, {ptr_caller, strPtr, builder.getInt32(l), builder.getInt32(cl) } );
 				}
-	
+
 				if (calleeName=="main")
 				{
 					errs() << "!!!!!!!!! main\n";
 					Instruction *newInst = CallInst::Create(hookRetMain,"");
 					newInst->insertBefore( &(*BI));
 				}
-	
+
 				if( (calleeName.find("cudaMalloc") != std::string::npos)  && (calleeName.find("_") == std::string::npos)  )
 				{
 		//			errs() <<  op->getNumArgOperands() << "\n";
@@ -266,14 +266,14 @@ namespace{
 					builder.CreateCall(hook4, {arg2}); //Value* argsxy[] = {arg2};
 
 					if (loc)
-					{	
+					{
 						int l =  loc.getLine();
                                         	int cl =  loc.getCol();
 						builder.CreateCall(hookMallocEvent, {ptr1, arg2,  builder.getInt32(l), builder.getInt32(cl) } );
 					}
 
 					//errs() << " ]]]\n\n" ;
-				} 
+				}
 			}
 
 			continue;
@@ -284,9 +284,9 @@ namespace{
 				builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() );
 			//	Value *TWO = ConstantInt::get(Type::getInt32Ty(C), 2);
 			//	Value *Two = ConstantFP::get(Type::getFloatTy(C), 2.0);
-				
+
 				Value* args[] = {op};
-				builder.CreateCall(hook3, args);			
+				builder.CreateCall(hook3, args);
 */
 				errs() << " ]]]\n\n" ;
 			}
@@ -298,7 +298,7 @@ namespace{
                                 IRBuilder<> builder(op); //insert before op
                                 builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op
 				Instruction *newInst = CallInst::Create(hook1,"");
-                                newInst->insertBefore( &(*BI));			
+                                newInst->insertBefore( &(*BI));
 
                                 const DebugLoc &loc = BI->getDebugLoc();
                                 if (loc)
@@ -331,9 +331,9 @@ namespace{
 			if ( auto *op = dyn_cast<StoreInst>( &(*BI) ) )
                         {
                                 errs()  << " [[[[\nI am a store!  :    "  << *BI <<  "\n";
-				
+
 				Instruction *newInst = CallInst::Create(hook2,"");
-                                newInst->insertBefore( &(*BI));	
+                                newInst->insertBefore( &(*BI));
 
 				IRBuilder<> builder(op); //insert before op
                                 builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op
@@ -348,11 +348,11 @@ namespace{
 					//builder.CreateCall(hook3,args);
 				}
 
-				
+
 				StoreInst *CI = dyn_cast<StoreInst>(BI);
 				Value  *addr = CI->getPointerOperand();
                         	Value *voidptr = builder.CreatePointerCast(addr, Type::getInt8PtrTy(C) );
-                                CallInst *MI = builder.CreateCall(hookEA, {voidptr, ONE});        
+                                CallInst *MI = builder.CreateCall(hookEA, {voidptr, ONE});
 
 				errs() << " ]]]\n\n" ;
                         }
@@ -367,7 +367,7 @@ namespace{
 // for Global Variables
 // deprecaded pass
     struct instru_globalvar : public ModulePass{
-        static char ID;   
+        static char ID;
         instru_globalvar() : ModulePass(ID) {}
 
         virtual bool runOnModule(Module &M)
@@ -383,7 +383,7 @@ namespace{
 // 3rd pass
 // memory accesses only
     struct instru_kernel_memory : public ModulePass{
-        static char ID;   
+        static char ID;
         Function *hook1;
         Function *hook2;
         Function *hook3;
@@ -395,7 +395,7 @@ namespace{
 	Value* str_fname;
 	Value* ptr_fname;
 	Type* VoidTy;
-	Value* p_stackzone; 
+	Value* p_stackzone;
 
         instru_kernel_memory() : ModulePass(ID) {}
 
@@ -403,7 +403,7 @@ namespace{
         {
 
 		LLVMContext &C = M.getContext();
-		VoidTy = Type::getVoidTy(C); 
+		VoidTy = Type::getVoidTy(C);
 
                 errs() << "\n ======== 3rd pass: GPU kernel: memory =============== \n\n";
 
@@ -417,7 +417,7 @@ namespace{
 			{
 				if(! nn->getOperand(j))
 					continue;
-				//MDOperand  op = ( nn->getOperand(j));		
+				//MDOperand  op = ( nn->getOperand(j));
 				Metadata*  op = ( nn->getOperand(j));
 				//errs() << *op  << "\n";
 				if( auto* str = dyn_cast<MDString>(nn->getOperand(j) ) )
@@ -442,18 +442,18 @@ namespace{
 		//	nn-> dump(); errs() << "\n";
 		}
 
-////	
+////
                 errs() << "\nLinking Analysis Functions:\n\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
 		{	// it is all about mangling
 			StringRef fn = F->getName();
             		std::string fname = fn.str();
 		//	errs() << fname << "\n";
-			
+
 			int ii;
 			for (ii=0; ii<AFsize; ii++)
-			if ( fname.find(AF[ii]) != std::string::npos ) 
-			{	
+			if ( fname.find(AF[ii]) != std::string::npos )
+			{
 		//		errs() << AF[ii] << "  is changed to "  ;
 				AF[ii].assign(fname);
 		//		errs() << AF[ii] <<  "\n";
@@ -474,8 +474,8 @@ namespace{
 //		hookFuncMain = M.getOrInsertFunction("fini", VoidTy, (Type*)0 );
 		hookFuncString = M.getOrInsertFunction(AF[4], VoidTy, Type::getInt8PtrTy(C), Type::getInt32Ty(C), NULL);
 //		Type::getFloatTy(M.getContext())  for float
-		hook1= cast<Function>(hookFunc1); hook2= cast<Function>(hookFunc2); hook3= cast<Function>(hookFunc3); 
-//		hook4= cast<Function>(hookFunc4); 
+		hook1= cast<Function>(hookFunc1); hook2= cast<Function>(hookFunc2); hook3= cast<Function>(hookFunc3);
+//		hook4= cast<Function>(hookFunc4);
 		hook5= cast<Function>(hookFunc5);
 //		hookMain = cast<Function>(hookFuncMain);
                 hookString = cast<Function>(hookFuncString);
@@ -489,7 +489,7 @@ namespace{
 			int ii;
                         for (ii=0; ii<AFsize; ii++)
                         	if ( fname.find(AF[ii]) != std::string::npos )
-                        	{	native = false; 
+                        	{	native = false;
                        		//	errs() << "found !" << fname << " \n";
 				}
 
@@ -512,9 +512,12 @@ namespace{
 
 			if (!yeskernel)
                         {
-                                Function::ArgumentListType &args = F -> getArgumentList();
-                                for (auto &a :  args )
-                                        p_stackzone = (Value*) &a;
+								//Function::ArgumentListType &args = F -> getArgumentList();
+                                //for (auto &a :  args )
+                                //        p_stackzone = (Value*) &a;
+
+                                for (auto &a :  F->args() )
+                                        p_stackzone = (Value*) &a
                         }
                         else
                         {
@@ -532,7 +535,7 @@ namespace{
             	}
 		return false;
         }
-// 
+//
 
         virtual bool runOnBasicBlock32(Function::iterator &BB)
         {
@@ -547,17 +550,17 @@ namespace{
         		//	errs()  << " [[[\nI am a load!  :    "  << *BI <<  "\n";
 
 				IRBuilder<> builder(op); //insert before op
-				
+
                                 const DebugLoc &loc = BI->getDebugLoc();
 				if (!loc)
 					printf(" I don't have a !dgb tag\n");
 
-                                builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op	
+                                builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op
                                 if (loc)
                                 {
                                         int l =  loc.getLine();
                                         int col =  loc.getCol();
-                                        Value* L = builder.getInt32(l); 
+                                        Value* L = builder.getInt32(l);
 					Value* sColm = builder.getInt32(col);
                                         Value* args[] = {L, builder.getInt32(col) };
                                 //	CallInst* tmp = builder.CreateCall(hook3,args);
@@ -586,14 +589,14 @@ namespace{
 
 		//		Instruction *newInst = CallInst::Create(hook1,"");
 				IRBuilder<> builder(op); //insert before op
-				
+
                                 const DebugLoc &loc = BI->getDebugLoc();
 				if (!loc)
 					printf(" I don't have a !dgb tag\n");
 
 			//	newInst->insertAfter( &(*BI));
-		
-                                builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op	
+
+                                builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op
                                 if (loc)
                                 {
                                         int l =  loc.getLine();
@@ -605,7 +608,7 @@ namespace{
 				//	CallInst* newInst = builder.CreateCall(hook1, TWO);
 				//	tmp->setDebugLoc( loc);
 				//	newInst->setDebugLoc( loc);
-                                
+
                                 	StoreInst* CI = dyn_cast<StoreInst>(BI);
                                 	Value* addr = CI->getPointerOperand();//TODO
 					Value* voidptr = builder.CreatePointerCast(addr, Type::getInt8PtrTy(C) );
@@ -622,7 +625,7 @@ namespace{
                       	//	errs() << " ]]]\n\n" ;
 				continue;
                         }
-			
+
 			continue;
             	}
             	return true;
@@ -637,7 +640,7 @@ namespace{
 // basic block related instrumentation
 
     struct instru_kernel_branch : public ModulePass{
-        static char ID;   
+        static char ID;
         Function *hook1;
         Function *hook2;
         Function *hook3;
@@ -659,7 +662,7 @@ namespace{
         {
 
 		LLVMContext &C = M.getContext();
-		VoidTy = Type::getVoidTy(C); 
+		VoidTy = Type::getVoidTy(C);
 
                 errs() << "\n ======== 4rd pass: GPU kernel branch instrumentation =============== \n\n";
 
@@ -674,7 +677,7 @@ namespace{
 			{
 				if(! nn->getOperand(j))
 					continue;
-				//MDOperand  op = ( nn->getOperand(j));		
+				//MDOperand  op = ( nn->getOperand(j));
 				Metadata*  op = ( nn->getOperand(j));
 				//errs() << *op  << "\n";
 				if( auto* str = dyn_cast<MDString>(nn->getOperand(j) ) )
@@ -703,11 +706,11 @@ namespace{
 			StringRef fn = F->getName();
             		std::string fname = fn.str();
 		//	errs() << fname << "\n";
-			
+
 			int ii;
 			for (ii=0; ii<AFsize; ii++)
-			if ( fname.find(AF[ii]) != std::string::npos ) 
-			{	
+			if ( fname.find(AF[ii]) != std::string::npos )
+			{
 			//	errs() << AF[ii] << "  is changed to "  ;
 				AF[ii].assign(fname);
 			//	errs() << AF[ii] <<  "\n";
@@ -727,9 +730,9 @@ namespace{
 		hookFuncString = M.getOrInsertFunction(AF[4], VoidTy, Type::getInt8PtrTy(C), Type::getInt32Ty(C), NULL);
 		hookFuncBB = M.getOrInsertFunction("passBasicBlock", VoidTy, Type::getInt32Ty(C), Type::getInt32Ty(C),Type::getInt32Ty(C),Type::getInt32Ty(C), Type::getInt8PtrTy(C),  NULL);
 		//hookFuncBB = M.getOrInsertFunction("passBasicBlock", VoidTy, Type::getInt8PtrTy(C), Type::getInt32Ty(C),Type::getInt32Ty(C),Type::getInt32Ty(C), Type::getInt8PtrTy(C),  NULL);
-		hook1= cast<Function>(hookFunc1); 
-		hook2= cast<Function>(hookFunc2); 
-		hook3= cast<Function>(hookFunc3); 
+		hook1= cast<Function>(hookFunc1);
+		hook2= cast<Function>(hookFunc2);
+		hook3= cast<Function>(hookFunc3);
                 hookBB = cast<Function>(hookFuncBB);
 		hookString = cast<Function> (hookFuncString);
 
@@ -742,7 +745,7 @@ namespace{
 			int ii;
                         for (ii=0; ii<AFsize; ii++)
                         	if ( fname.find(AF[ii]) != std::string::npos )
-                        	{	
+                        	{
 					native = false;
                       		//	errs() << "found !" << fname << " \n";
 				}
@@ -800,7 +803,7 @@ namespace{
 		Value *THREE = ConstantInt::get(Type::getInt32Ty(C), 3);
 
 		Function* bb_func = BB->getParent();
-		StringRef f_name = bb_func->getName();	
+		StringRef f_name = bb_func->getName();
 
 		Instruction* inst = BB->getFirstNonPHI();
 		const DebugLoc &loc = inst->getDebugLoc();
@@ -808,8 +811,8 @@ namespace{
 		IRBuilder<> builder(inst);
 //		if ( auto* ci = dyn_cast<CallInst> (inst) )
 //			if ( ci->getCalledFunction()->getName().str() == "InitKernel" )
-//				builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); 
-				
+//				builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() );
+
 
 		if(!flag1)
 		{
@@ -836,16 +839,16 @@ namespace{
 			int ln = loc.getLine();
 			int cl = loc.getCol();
 			if (bb_name=="entry" && yeskernel)	//make sure InitKernel is always the first
-				builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); 
+				builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() );
 
 		//	errs() <<"function name: " <<  f_name<< "\n";
 		//	errs() << "block name: " << bb_name << "\n";
-			
+
 			CallInst* ci = builder.CreateCall(hookBB, {ONE, ONE, builder.getInt32(ln), builder.getInt32(cl), p_stackzone } );
 			//CallInst* ci = builder.CreateCall(hookBB, {str_bbname, ONE, builder.getInt32(ln), builder.getInt32(cl), p_stackzone } );
 			ci->setDebugLoc(loc);
-		} 
-		else 	
+		}
+		else
 		{
                 	for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
 			{
@@ -855,7 +858,7 @@ namespace{
 					int ln = loc2.getLine();
                         		int cl = loc2.getCol();
 					if (bb_name=="entry" && yeskernel)	//make sure InitKernel is always the first
-						builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); 
+						builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() );
                         		CallInst *ci = builder.CreateCall(hookBB, {ONE, ONE, builder.getInt32(ln), builder.getInt32(cl), p_stackzone} );
                         	//	CallInst *ci = builder.CreateCall(hookBB, {str_bbname, ONE, builder.getInt32(ln), builder.getInt32(cl), p_stackzone} );
                         		ci->setDebugLoc(loc2);
@@ -875,14 +878,14 @@ namespace{
 // 5th pass
 // this pass is for constructing call path.
     struct instru_kernel_callpath : public ModulePass{
-        static char ID;   
+        static char ID;
 	Function *hookFCall;
 	Function* hookString;
 	bool flag1;
 	Value* str_fname;
 	Value* ptr_fname;
 	Value* p_stackzone;
-	Type* VoidTy; 
+	Type* VoidTy;
 
         instru_kernel_callpath() : ModulePass(ID) {}
 
@@ -890,7 +893,7 @@ namespace{
         {
 
 		LLVMContext &C = M.getContext();
-		VoidTy = Type::getVoidTy(C); 
+		VoidTy = Type::getVoidTy(C);
 
                 errs() << "\n ======== 5th pass: GPU constructing call path  =============== \n\n";
 
@@ -905,7 +908,7 @@ namespace{
 			{
 				if(! nn->getOperand(j))
 					continue;
-				//MDOperand  op = ( nn->getOperand(j));		
+				//MDOperand  op = ( nn->getOperand(j));
 				Metadata* op = ( nn->getOperand(j));
 				//errs() << *op  << "\n";
 				if( auto* str = dyn_cast<MDString>(nn->getOperand(j) ) )
@@ -928,18 +931,18 @@ namespace{
  			}
 		}
 
-////	
+////
                 errs() << "\nLinking Analysis Functions:\n\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
 		{	// it is all about mangling
 			StringRef fn = F->getName();
             		std::string fname = fn.str();
 		//	errs() << fname << "\n";
-			
+
 			int ii;
 			for (ii=0; ii<AFsize; ii++)
-			if ( fname.find(AF[ii]) != std::string::npos ) 
-			{	
+			if ( fname.find(AF[ii]) != std::string::npos )
+			{
 			//	errs() << AF[ii] << "  is changed to "  ;
 				AF[ii].assign(fname);
 			//	errs() << AF[ii] <<  "\n";
@@ -973,14 +976,14 @@ namespace{
 
 		////
 		////
-	
+
 		for ( int ii=0; ii<KNcnt; ii++)
 		{
 			// for all cuda kernels
 			Function* F = M.getFunction(CUDAKN[ii]);
 			for(Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB)
                 		instru_kernel_callpath::runOnBasicBlock53(BB);
-							
+
 		}
 
 		//for all non-kernel device functions, such as foo_AA
@@ -994,10 +997,10 @@ namespace{
 
 			for(Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB)
                                 instru_kernel_callpath::runOnBasicBlock54(BB);
-		}	
+		}
 
 
-		errs() << "going to delele\n";	
+		errs() << "going to delele\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
 		{
 			std::string fname = F->getName().str();
@@ -1011,7 +1014,7 @@ namespace{
                         std::string fname = F->getName().str();
                         if ( fname.find("2delete") != std::string::npos )
 			{
-				errs() << "will erase " << fname << "\n";	
+				errs() << "will erase " << fname << "\n";
 				F->dropAllReferences();
 				F->eraseFromParent();
 				F = M.begin(); //to avoid iterator fault
@@ -1020,7 +1023,7 @@ namespace{
 
 		return false; //DEBUG
         }
-// 
+//
         virtual bool runOnBasicBlock51(Function::iterator &BB, std::set<std::string> &listF)
 	{
 		for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
@@ -1040,7 +1043,7 @@ namespace{
                                 {
                                         yeskernel = true;
                                         break;
-                                }				
+                                }
 
 
 				bool yesnative = true;
@@ -1051,7 +1054,7 @@ namespace{
 				if (yeskernel && yesnative)
 				{
 					if ( ! op->getCalledFunction()-> isDeclaration() )
-						listF.insert(calleeName);	// if called by a cuda kernel, enlist if not ... 
+						listF.insert(calleeName);	// if called by a cuda kernel, enlist if not ...
 				}
 				else
 				{
@@ -1061,7 +1064,7 @@ namespace{
 						{
 						//	errs() << callerName << "\t" ;
 						//	errs() << "-->\t" ;
-						//	errs() << calleeName << "\n\n" ;	
+						//	errs() << calleeName << "\n\n" ;
 							listF.insert(calleeName);
 						}
 					}
@@ -1072,14 +1075,14 @@ namespace{
 	}
 
         virtual bool runOnBasicBlock55(Function::iterator &BB)
-        {	
+        {
         	LLVMContext &C = BB->getContext();
 		Value *ONE = ConstantInt::get(Type::getInt32Ty(C), 1);
 		Value *TWO = ConstantInt::get(Type::getInt32Ty(C), 2);
 		Value *THREE = ConstantInt::get(Type::getInt32Ty(C), 3);
 
 		Function* bb_func = BB->getParent();
-		StringRef f_name = bb_func->getName();	
+		StringRef f_name = bb_func->getName();
 
 		IRBuilder<> bbbuilder(&(*BB));
 		if(!flag1)
@@ -1092,7 +1095,7 @@ namespace{
 	    	for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
             	{
 			if ( auto *op = dyn_cast<CallInst>( &(*BI) ) )
-			{	
+			{
 			//	errs() << op->getCalledFunction() -> getName().str();
 				Function* f = op->getCalledFunction();
                                 if (!f) //this check is important for: %call =  call deferenceble bla bla...
@@ -1121,14 +1124,14 @@ namespace{
 
 
         virtual bool runOnBasicBlock53(Function::iterator &BB)
-        {	
+        {
         	LLVMContext &C = BB->getContext();
 		Value *ONE = ConstantInt::get(Type::getInt32Ty(C), 1);
 		Value *TWO = ConstantInt::get(Type::getInt32Ty(C), 2);
 		Value *THREE = ConstantInt::get(Type::getInt32Ty(C), 3);
 
 		Function* bb_func = BB->getParent();
-		StringRef f_name = bb_func->getName();	
+		StringRef f_name = bb_func->getName();
 
 		IRBuilder<> bbbuilder(&(*BB));
 		if(!flag1)
@@ -1141,7 +1144,7 @@ namespace{
 	    	for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
             	{
 			if ( auto *op = dyn_cast<CallInst>( &(*BI) ) )
-			{	
+			{
 			//	errs() << op->getCalledFunction() -> getName().str();
 				Function* f = op->getCalledFunction();
                                 if (!f) //this check is important for: %call =  call deferenceble bla bla...
@@ -1152,10 +1155,10 @@ namespace{
 				std::string calleeName = callee.str();
 
 				if ( calleeName.find("llvm.dbg.")!= std::string::npos || calleeName.find("ptx.sreg")!= std::string::npos
-					|| calleeName.find("nvvm.barrier")!= std::string::npos || calleeName.find("llvm.nvvm.")!= std::string::npos 
+					|| calleeName.find("nvvm.barrier")!= std::string::npos || calleeName.find("llvm.nvvm.")!= std::string::npos
 					|| calleeName.find("llvm.fabs")!= std::string::npos || calleeName.find("llvm.fma")!= std::string::npos
 					|| calleeName.find("assertfail")!= std::string::npos
-					|| calleeName == "RetKernel" || calleeName == "passBasicBlock" ) 
+					|| calleeName == "RetKernel" || calleeName == "passBasicBlock" )
 					continue;	//skip functions containing these keywords
 
 				if ( calleeName == "InitKernel")
@@ -1169,7 +1172,7 @@ namespace{
 					continue;
 
 				///// part 1
-				///// replace the function call with new callee who has one extra argument 	
+				///// replace the function call with new callee who has one extra argument
                                 IRBuilder<> builder(op);
 
 				std::string newCallee = calleeName.erase( calleeName.find("2delete"), 7) ;
@@ -1208,7 +1211,7 @@ namespace{
                                 strPtr = builder.CreatePointerCast(Str, Type::getInt8PtrTy(C) );
                                 Value *args2[] = {strPtr, TWO};
                                 //CallInst* tmpI = builder.CreateCall(hookString, args2);
-				
+
 				if(loc)
 				{
 					int ln = loc.getLine();
@@ -1216,7 +1219,7 @@ namespace{
 					//MI -> setDebugLoc(loc);
 					// tmpI -> setDebugLoc(loc);
 					errs() << " I would pass this pointer at this instrumentation site " ;
-					newop -> dump();	
+					newop -> dump();
 					p_stackzone ->dump();
                                 	CallInst* ci1 = builder.CreateCall( hookFCall, {ptr_caller, strPtr, builder.getInt32(ln), builder.getInt32(cl), p_stackzone} );	//DEBUG
                                 	ci1 -> setDebugLoc(loc);
@@ -1235,15 +1238,15 @@ namespace{
 	}
 
         virtual bool runOnBasicBlock54(Function::iterator &BB)
-        {	
-		// I am for non-kernel device functions	
+        {
+		// I am for non-kernel device functions
         	LLVMContext &C = BB->getContext();
 		Value *ONE = ConstantInt::get(Type::getInt32Ty(C), 1);
 		Value *TWO = ConstantInt::get(Type::getInt32Ty(C), 2);
 		Value *THREE = ConstantInt::get(Type::getInt32Ty(C), 3);
 
 		Function* bb_func = BB->getParent();
-		StringRef f_name = bb_func->getName();	
+		StringRef f_name = bb_func->getName();
 
 		IRBuilder<> bbbuilder(&(*BB));
 		if(!flag1)
@@ -1256,7 +1259,7 @@ namespace{
 	    	for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
             	{
 			if ( auto *op = dyn_cast<CallInst>( &(*BI) ) )
-			{	
+			{
 			//	errs() << op->getCalledFunction() -> getName().str();
 				Function* f = op->getCalledFunction();
                                 if (!f) //this check is important for: %call =  call deferenceble bla bla...
@@ -1270,10 +1273,10 @@ namespace{
                                 std::string callerName = caller.str();
 
 				if ( calleeName.find("llvm.dbg.")!= std::string::npos || calleeName.find("ptx.sreg")!= std::string::npos
-					|| calleeName.find("nvvm.barrier")!= std::string::npos || calleeName.find("llvm.nvvm.")!= std::string::npos 
+					|| calleeName.find("nvvm.barrier")!= std::string::npos || calleeName.find("llvm.nvvm.")!= std::string::npos
 					|| calleeName.find("llvm.fabs")!= std::string::npos || calleeName.find("llvm.fma")!= std::string::npos
 					|| calleeName.find("assertfail")!= std::string::npos
-					|| calleeName == "RetKernel" || calleeName == "passBasicBlock" ) 
+					|| calleeName == "RetKernel" || calleeName == "passBasicBlock" )
 					continue;	//skip functions containing these keywords
 
 				//if ( callerName.find("2delete") != std::string::npos)
@@ -1283,7 +1286,7 @@ namespace{
 					continue;	// skip, to avoid repeating instrumentaion
 
 				///// part 1
-				///// replace the function call with new callee who has one extra argument 	
+				///// replace the function call with new callee who has one extra argument
                                 IRBuilder<> builder(op);
 				errs() << "\n\n54 : caller= " << callerName << "\n";
 				op->dump();
@@ -1322,7 +1325,7 @@ namespace{
                                 strPtr = builder.CreatePointerCast(Str, Type::getInt8PtrTy(C) );
                                 Value *args2[] = {strPtr, TWO};
                                // CallInst* tmpI = builder.CreateCall(hookString, args2);
-				
+
 				if(loc)
 				{
 					int ln = loc.getLine();
@@ -1330,7 +1333,7 @@ namespace{
 					//MI -> setDebugLoc(loc);
 					// tmpI -> setDebugLoc(loc);
 					errs() << " I would pass this pointer at this instrumentation site " ;
-					newop -> dump();	
+					newop -> dump();
 					p_stackzone ->dump();
                                 	CallInst* ci1 = builder.CreateCall( hookFCall, {ptr_fname, strPtr, builder.getInt32(ln), builder.getInt32(cl), p_stackzone} );
                                 	ci1 -> setDebugLoc(loc);
@@ -1360,7 +1363,7 @@ namespace{
 
 		/////
 		/////
-		
+
                         //construct the new function
                         std::vector<Type*> argsTy;
                         for ( auto &a : args)
@@ -1396,7 +1399,7 @@ namespace{
                         SmallVector<ReturnInst*, 8> Returns;  // Ignore returns cloned.
                         ClonedCodeInfo *codeinfo = nullptr;
                         CloneFunctionInto(fc, &(*F) , VMap, false, Returns, "", codeinfo);
-		
+
 		/////
 		/////
 		// now you want to append "2delete" to the orignal func name
@@ -1404,11 +1407,11 @@ namespace{
 		std::string newname = fname+"2delete";
 		F->setName(newname);
 
-		/////	
+		/////
 		/////
 		// now: remove "asdfg" from the new function name
 		fc->setName(fname);
-				
+
 		/////
 		/////do you need to worry about metadata?
 
@@ -1424,11 +1427,11 @@ namespace{
 // 6th pass
 // function signature modify
     struct instru_kernel_sig : public ModulePass{
-        static char ID;   
+        static char ID;
 	bool flag1;
 	Value* str_fname;
 	Value* ptr_fname;
-	Type* VoidTy; 
+	Type* VoidTy;
 
         instru_kernel_sig() : ModulePass(ID) {}
 
@@ -1436,7 +1439,7 @@ namespace{
         {
 
 		LLVMContext &C = M.getContext();
-		VoidTy = Type::getVoidTy(C); 
+		VoidTy = Type::getVoidTy(C);
 
                 errs() << "\n ======== 6th pass; kernel function and device routines signature modificatioin =============== \n\n";
 
@@ -1450,7 +1453,7 @@ namespace{
 			{
 				if(! nn->getOperand(j))
 					continue;
-				//MDOperand  op = ( nn->getOperand(j));		
+				//MDOperand  op = ( nn->getOperand(j));
 				//Metadata*  op = ( nn->getOperand(j));
 				//errs() << *op  << "\n";
 				if( auto* str = dyn_cast<MDString>(nn->getOperand(j) ) )
@@ -1473,18 +1476,18 @@ namespace{
  			}
 		}
 
-////	
+////
                 errs() << "\nLinking Analysis Functions:\n\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
 		{	// it is all about mangling
 			StringRef fn = F->getName();
             		std::string fname = fn.str();
 			//errs() << fname << "\n";
-			
+
 			int ii;
 			for (ii=0; ii<AFsize; ii++)
-			if ( fname.find(AF[ii]) != std::string::npos ) 
-			{	
+			if ( fname.find(AF[ii]) != std::string::npos )
+			{
 			//	errs() << AF[ii] << "  is changed to ";
 				AF[ii].assign(fname);
 			//	errs() << AF[ii] <<  "\n";
@@ -1585,7 +1588,7 @@ namespace{
 		}
 
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
-                {	// round 3 
+                {	// round 3
                         bool oldkernel = false;
                         bool newkernel = false;
                         std::string fname = F->getName().str();
@@ -1648,8 +1651,8 @@ namespace{
 								//F->setName(newname);
 								//errs() << " going to replace this new func : " << newF->getName().str() << "\n";
 								ValueAsMetadata* newVMdata = ValueAsMetadata::get(newF);
-								nn->replaceOperandWith( j-1, newVMdata ); 
-							}		
+								nn->replaceOperandWith( j-1, newVMdata );
+							}
 					}
 				}
  			}
@@ -1659,11 +1662,11 @@ namespace{
 		/////
 		errs() << " \n\nnow delete those old kernels. "<< "\n";
 		std::string ToDelete[20];
-		int TDcnt = 0;	
+		int TDcnt = 0;
 
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
-                {	// round 4 
-		//	Function* f = (Function*)(&F);	
+                {	// round 4
+		//	Function* f = (Function*)(&F);
 		//	errs() << f->getName() << "vanity check\n";
 		//	if ( !f )
 		//		continue;
@@ -1678,7 +1681,7 @@ namespace{
 					continue;
 				}
                 }
-                        
+
 		for (int ii=0; ii<TDcnt; ii++)
 		{
 			Function* f = M.getFunction( ToDelete[ii] );
@@ -1700,7 +1703,7 @@ namespace{
 // 7th pass
 // host-side function signature modify
     struct instru_host_sig : public ModulePass{
-        static char ID;   
+        static char ID;
         Function *hook1;
         Function *hook2;
         Function *hook3;
@@ -1722,7 +1725,7 @@ namespace{
 	Value* buffer_d = NULL;
 	Value* buffer_stack = NULL; //for global stack on GPU
 //	Value* buffer_stackHeight = NULL; //for global stack height on GPU
-	 
+
 
         instru_host_sig() : ModulePass(ID) {}
 
@@ -1730,7 +1733,7 @@ namespace{
         {
 
 		LLVMContext &C = M.getContext();
-		VoidTy = Type::getVoidTy(C); 
+		VoidTy = Type::getVoidTy(C);
 
                 errs() << "\n ======== 7th pass; host side function signature modificatioin =============== \n\n";
 
@@ -1757,13 +1760,13 @@ namespace{
 		hookGridReset = cast<Function>(hookFuncGridReset);
 		hookGridGet = cast<Function>(hookFuncGridGet);
 
-//// auto-detect CUDA kernels on host side 
+//// auto-detect CUDA kernels on host side
 		Function* fcrf = M.getFunction("__cuda_register_globals");
 		if (fcrf) //just in case
 		{
-			//errs() << " I am in __cuda_register_globals function"; 
+			//errs() << " I am in __cuda_register_globals function";
 			//errs() << "\n";
-			errs() << " I found these CUDA kernel functions: "; 
+			errs() << " I found these CUDA kernel functions: ";
 			errs() << "\n";
 			for(Function::iterator BB = fcrf->begin(), E = fcrf->end(); BB != E; ++BB)
 	    			for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
@@ -1784,18 +1787,18 @@ namespace{
 					}
 		}
 
-////	
+////
                 errs() << "\nLinking Analysis Functions:\n\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
 		{	// it is all about mangling
 			StringRef fn = F->getName();
             		std::string fname = fn.str();
 		//	errs() << fname << "\n";
-			
+
 			int ii;
 			for (ii=0; ii<AFsize; ii++)
-			if ( fname.find(AF[ii]) != std::string::npos ) 
-			{	
+			if ( fname.find(AF[ii]) != std::string::npos )
+			{
 				errs() << AF[ii] << " is changed to "  ;
 				AF[ii].assign(fname);
 				errs() << AF[ii] <<  "\n";
@@ -1897,7 +1900,7 @@ namespace{
 
 		errs() << " \n\nthird round. "<< "\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
-                {	// round 3 
+                {	// round 3
                         bool oldkernel = false;
                         bool newkernel = false;
                         std::string fname = F->getName().str();
@@ -1943,8 +1946,8 @@ namespace{
 					break;
 				}
 
-			if (yeskernel) 
-			{	
+			if (yeskernel)
+			{
 				errs() << "found kernel " << fname << "\n";
                 		for(Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB)
                 			instru_host_sig::runOnBasicBlock71(BB); // this is for kernel only
@@ -1960,10 +1963,10 @@ namespace{
 
 		errs() << " \n\nnow delete those old kernels. "<< "\n";
 		std::string ToDelete[20];
-		int TDcnt = 0;	
+		int TDcnt = 0;
 
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
-                {	// round 4 
+                {	// round 4
                         std::string fname = F->getName().str();
                         //errs() << fname << "\n";
                         for (int ii=0; ii<KNcnt; ii++)
@@ -1974,7 +1977,7 @@ namespace{
 					continue;
 				}
                 }
-                        
+
 		for (int ii=0; ii<TDcnt; ii++)
 		{
 			errs() << "To Delete: " << ToDelete[ii] << "\n";
@@ -1983,7 +1986,7 @@ namespace{
 			{
 				f->deleteBody();
 				f->dropAllReferences();
-			//	f->replaceAllUsesWith( UndefValue::get( (Type*)f->getType()) ); 
+			//	f->replaceAllUsesWith( UndefValue::get( (Type*)f->getType()) );
 				f->eraseFromParent();
 			}
 		}
@@ -2013,7 +2016,7 @@ namespace{
 
 		errs() << " done host_sig pass.\n\n" ;
         }
-// 
+//
 
         virtual bool runOnBasicBlock71(Function::iterator &BB)
         {
@@ -2030,12 +2033,12 @@ namespace{
 		//	errs() << "I am in entry block of " << fname.str()<< "\n" ;
 
 		 	AllocaInst* ai; //, *ai2; //, *ai3;
-			StoreInst* si; // *si2; //, *si3; 
+			StoreInst* si; // *si2; //, *si3;
 			CastInst* ci;
 	    		for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
-			{ 
+			{
 				instcnt ++;
-				
+
 				if (instcnt == 1)
 				{
 					IRBuilder<> builder(&(*BI));
@@ -2047,7 +2050,7 @@ namespace{
 				//	ai3->setAlignment(8);
 
 		                        Function::ArgumentListType &args = bb_func -> getArgumentList();
-					errs() << " asdfgg size = "  << args.size() << "\n"; 
+					errs() << " asdfgg size = "  << args.size() << "\n";
 
 					Value* arg_ptrhead; //, *arg_stack; //, *arg_stackHeight;
 
@@ -2072,10 +2075,10 @@ namespace{
 						ii++;
 						(&a) ->dump();
 					}
-					//errs() << *arg;	
+					//errs() << *arg;
 					//errs() << "\n";
 
-					si = builder.CreateStore( arg_ptrhead , ai); 
+					si = builder.CreateStore( arg_ptrhead , ai);
 					//si2 = builder.CreateStore( arg_stack , ai2);
 					//si3 = builder.CreateStore( arg_stackHeight , ai3);
 					si->setAlignment(8);
@@ -2095,11 +2098,11 @@ namespace{
 			{
 				Function* f = op->getCalledFunction();
 				if (!f) //this check is important for: %call =  call deferenceble bla bla...
-					continue;	
+					continue;
 				StringRef callee = op->getCalledFunction() -> getName();
                                 std::string calleeName = callee.str();
 
-				if( (calleeName.find("cudaSetupArgument") != std::string::npos)  )  
+				if( (calleeName.find("cudaSetupArgument") != std::string::npos)  )
 				{
 				//	errs() << "cudaSetupArgument " << "\n";
 					Value* arg = op->getArgOperand(2); //the last one is offset
@@ -2116,7 +2119,7 @@ namespace{
                                 {
 				//	errs() << "cudaLaunch: " << op->getNumArgOperands() << "\n";
 					Value* arg = op->getArgOperand(0);
-					
+
 					IRBuilder<> builder(&(*BI));
 					///
 					/// insert one more cudaSetupArgument right before cudaLuanch
@@ -2138,13 +2141,13 @@ namespace{
 				//	builder.CreateCall( hookCudaArg, {b_stack /*generated in entry block*/ , builder.getInt64(8), builder.getInt64(16+offset) }  );
 				//	builder.CreateCall( hookCudaArg, {b_stackHeight /*generated in entry block*/ , builder.getInt64(8), builder.getInt64(24+offset) }  );
 
-					/// 
+					///
 					/// replace old kernel call
 					Function* F = BB -> getParent();
 					Value* newcall = builder.CreatePointerCast( F , Type::getInt8PtrTy(C))  ;
 					op->setArgOperand(0, newcall); //simply substitute the first argument
 					errs() << "newcall :" <<  *newcall << "\n";
-				}	
+				}
 			}
             	}
 
@@ -2173,7 +2176,7 @@ namespace{
                                 if( (calleeName.find("2delete") != std::string::npos)  )
 				{
 					errs() << "I find a InvokeInst " << calleeName << "\n" ;
-						
+
                                         int numArgs =  op->getNumArgOperands();
 
 					std::string newname = calleeName.erase( calleeName.find("2delete") ,7);
@@ -2184,7 +2187,7 @@ namespace{
 					///
 					///
 
-						
+
 					BasicBlock* b1 = op->getNormalDest();
 					BasicBlock* b2 = op->getUnwindDest();
 					///
@@ -2196,9 +2199,9 @@ namespace{
 
 					Value* str = builder.CreateGlobalStringPtr("TODO");//TODO
 					Value* tmp = builder.CreatePointerCast(str, Type::getInt8PtrTy(C) );
-					newargs.push_back( tmp ); 
-				//	newargs.push_back( tmp ); 
-			//		newargs.push_back( tmp );//yes, I need three pointers 
+					newargs.push_back( tmp );
+				//	newargs.push_back( tmp );
+			//		newargs.push_back( tmp );//yes, I need three pointers
 
 				//	for(int ii=0; ii < newargs.size(); ii++)
 				//		errs() << ii  << " " << *(newargs[ii]) << "\n";
@@ -2206,7 +2209,7 @@ namespace{
 					Value *toshow = builder.CreateCall( newcall, newargs);
 					builder.CreateBr( b1);
 					toshow ->dump();
-		
+
 				//	errs() << "about to remove the instruction below : \n";
              			//	op ->dump();
 					op ->eraseFromParent();
@@ -2218,13 +2221,13 @@ namespace{
 			{
 				Function* f = op->getCalledFunction();
 				if (!f) //this check is important for: %call =  call deferenceble bla bla...
-					continue;	
+					continue;
 				StringRef callee = op->getCalledFunction() -> getName();
                                 std::string calleeName = callee.str();
 
-				if( (calleeName.find("2delete") != std::string::npos)  ) 
-				{	
-				////////// change the call to old kernel to the new kernel, and set a pointer as a temporal argument 
+				if( (calleeName.find("2delete") != std::string::npos)  )
+				{
+				////////// change the call to old kernel to the new kernel, and set a pointer as a temporal argument
                                         int numArgs =  op->getNumArgOperands();
 
 					std::string newname = calleeName.erase( calleeName.find("2delete") ,7);
@@ -2241,23 +2244,23 @@ namespace{
 
 					Value* str = builder.CreateGlobalStringPtr("TODO");//TODO
 					Value* tmp = builder.CreatePointerCast(str, Type::getInt8PtrTy(C) );
-					newargs.push_back( tmp ); 
-				//	newargs.push_back( tmp ); 
-			//		newargs.push_back( tmp );//yes, I need three pointers 
+					newargs.push_back( tmp );
+				//	newargs.push_back( tmp );
+			//		newargs.push_back( tmp );//yes, I need three pointers
 
 				//	for(int ii=0; ii < newargs.size(); ii++)
 				//		errs() << ii  << " " << *(newargs[ii]) << "\n";
 					Value *toshow = builder.CreateCall( newcall, newargs);
 					toshow ->dump();
-		
+
 				//	errs() << "about to remove the instruction below : \n";
              			//	op ->dump();
 					op ->eraseFromParent();
 					BI = BB->begin(); //very important to avoid seg fault/core dump
-				} 
+				}
 				else if( (calleeName.find("cudaRegisterFunction") != std::string::npos)  )
                                 {
-				////////// register the new kernel 
+				////////// register the new kernel
 					// and also remove the old kernel
                                 //	op ->dump();
                                 //	errs() <<  *(op->getArgOperand(1)) << "\n";
@@ -2277,7 +2280,7 @@ namespace{
 				}
 			}
 		}
-	
+
            	return true;
         }
 
@@ -2353,7 +2356,7 @@ namespace{
 				op -> setArgOperand(num-1, li_d);
 			//	op -> setArgOperand(num-1, li_stack);
 			//	op -> setArgOperand(num-1, li_stackHeight);
-				
+
 				///////
 				///////
 
@@ -2378,8 +2381,8 @@ namespace{
 				Function* fAppendTrace = BI->getModule()->getFunction("appendTrace");
 				assert( fGetHandle && fAppendTrace && "some function not found 2");
 
-				Value* p2trace = builder.CreateCall(fGetHandle, builder.getInt32(2));	
-				builder.CreateCall(fAppendTrace, {p2trace, buffer_h});				
+				Value* p2trace = builder.CreateCall(fGetHandle, builder.getInt32(2));
+				builder.CreateCall(fAppendTrace, {p2trace, buffer_h});
 
 				///////
 				///////
@@ -2451,7 +2454,7 @@ namespace{
 				op -> setArgOperand(num-1, li_d);
 			//	op -> setArgOperand(num-1, li_stack);
 			//	op -> setArgOperand(num-1, li_stackHeight);
-				
+
 				///////
 				///////
 				builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op
@@ -2474,8 +2477,8 @@ namespace{
 				Function* fAppendTrace = BI->getModule()->getFunction("appendTrace");
 				assert( fGetHandle && fAppendTrace && "some function not found 2");
 
-				Value* p2trace = builder.CreateCall(fGetHandle, builder.getInt32(2));	
-				builder.CreateCall(fAppendTrace, {p2trace, buffer_h});				
+				Value* p2trace = builder.CreateCall(fGetHandle, builder.getInt32(2));
+				builder.CreateCall(fAppendTrace, {p2trace, buffer_h});
 
 				///////
 				///////
@@ -2487,7 +2490,7 @@ namespace{
 			//	builder.CreateCall( fcudafree, li_stackHeight);
 				continue;
 			}
-		}	
+		}
 		return true;
 	}
 
@@ -2501,14 +2504,14 @@ namespace{
 // 8th pass
 // this is path is for kernel initialization and return.
     struct instru_kernel_basic : public ModulePass{
-        static char ID;   
+        static char ID;
 	Function *hookRet;
 	Function *hookInit;
 	bool flag1;
 	Value* str_fname;
 	Value* ptr_fname;
 	Type* VoidTy;
-	Value* p_stackzone; 
+	Value* p_stackzone;
 
         instru_kernel_basic() : ModulePass(ID) {}
 
@@ -2516,7 +2519,7 @@ namespace{
         {
 
 		LLVMContext &C = M.getContext();
-		VoidTy = Type::getVoidTy(C); 
+		VoidTy = Type::getVoidTy(C);
 
                 errs() << "\n ======== 8th pass: GPU kernel basic:  initialization and return. =============== \n\n";
 
@@ -2531,7 +2534,7 @@ namespace{
 			{
 				if(! nn->getOperand(j))
 					continue;
-				//MDOperand  op = ( nn->getOperand(j));		
+				//MDOperand  op = ( nn->getOperand(j));
 				Metadata*  op = ( nn->getOperand(j));
 				//errs() << *op  << "\n";
 				if( auto* str = dyn_cast<MDString>(nn->getOperand(j) ) )
@@ -2554,18 +2557,18 @@ namespace{
  			}
 		}
 
-////	
+////
                 errs() << "\nLinking Analysis Functions:\n\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
 		{	// it is all about mangling
 			StringRef fn = F->getName();
             		std::string fname = fn.str();
 		//	errs() << fname << "\n";
-			
+
 			int ii;
 			for (ii=0; ii<AFsize; ii++)
-			if ( fname.find(AF[ii]) != std::string::npos ) 
-			{	
+			if ( fname.find(AF[ii]) != std::string::npos )
+			{
 			//	errs() << AF[ii] << "  is changed to "  ;
 				AF[ii].assign(fname);
 			//	errs() << AF[ii] <<  "\n";
@@ -2600,7 +2603,7 @@ namespace{
                                 continue;
 			}
 
-			flag1 = false;			
+			flag1 = false;
                 	for(Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB)
                 		instru_kernel_basic::runOnBasicBlock82(BB);
 			for(Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB)
@@ -2609,14 +2612,14 @@ namespace{
             	}
 		return false;
         }
-// 
+//
         virtual bool runOnBasicBlock81(Function::iterator &BB)
-        { 
+        {
 		//instrument at kernel return;
         	LLVMContext &C = BB->getContext();
 
 		Function* bb_func = BB->getParent();
-		StringRef f_name = bb_func->getName();	
+		StringRef f_name = bb_func->getName();
 
 		IRBuilder<> bbbuilder(&(*BB));
 		if(!flag1)
@@ -2641,14 +2644,14 @@ namespace{
 				//ffname = fname.c_str();
 
 				IRBuilder<> builder(op); //IMPORTANT: you can't insert a call after a call, you will get dead loop
-	
+
 				bool yeskernel=false;
 				for (int ii=0; ii<KNcnt; ii++)
 				{
 				//	errs() << CUDAKN[ii] << " and  " << fname << "\n";
 					if ( fname.find(CUDAKN[ii])!= std::string::npos)
 						yeskernel=true;
-				}	
+				}
                  		//if ( fname.find("axpy_kernel")!= std::string::npos )
 				if (yeskernel)
 				{
@@ -2658,7 +2661,7 @@ namespace{
 					if(loc)
                                         	tmpI->setDebugLoc(loc);
 				}
-				
+
                                 //errs() << " ]]]\n\n" ;
 				continue;
                         }
@@ -2672,7 +2675,7 @@ namespace{
         	LLVMContext &C = BB->getContext();
 
 		Function* bb_func = BB->getParent();
-		StringRef f_name = bb_func->getName();	
+		StringRef f_name = bb_func->getName();
 
 		Instruction* inst = BB->getFirstNonPHI();
 		const DebugLoc &loc = inst->getDebugLoc();
@@ -2686,7 +2689,7 @@ namespace{
 			flag1 = true;
 		}
 
-		//insert intialization into Kernel's entry block		
+		//insert intialization into Kernel's entry block
 	       	bool yeskernel=false;
 		for (int ii=0; ii<KNcnt; ii++)
 		{
@@ -2720,7 +2723,7 @@ namespace{
                         //        	arg2 = (Value*) &a;
 				ii++;
 			}
-			
+
 			CallInst* tmpI = builder.CreateCall(hookInit, {arg1});
 			p_stackzone = (Value*)tmpI;
 			//CallInst* tmpI = builder.CreateCall(hookInit, {arg1, arg2});
@@ -2750,7 +2753,7 @@ namespace{
 // 9th pass
 // host-side time measurement
     struct instru_host_measure : public ModulePass{
-        static char ID;   
+        static char ID;
         Function *hook1;
         Function *hook2;
         Function *hook3;
@@ -2772,7 +2775,7 @@ namespace{
 	Value* buffer_d = NULL;
 	Value* buffer_stack = NULL; //for global stack on GPU
 //	Value* buffer_stackHeight = NULL; //for global stack height on GPU
-	 
+
 
         instru_host_measure() : ModulePass(ID) {}
 
@@ -2780,23 +2783,23 @@ namespace{
         {
 
 		LLVMContext &C = M.getContext();
-		VoidTy = Type::getVoidTy(C); 
+		VoidTy = Type::getVoidTy(C);
 
                 errs() << "\n ======== 7th pass; host side time mesurement =============== \n\n";
 
 		Constant* hookFuncCudaSync;
 		Constant* hookFuncMeasure;
-	
+
 		hookFuncCudaSync = M.getOrInsertFunction("cudaDeviceSynchronize", Type::getInt32Ty(C), NULL);
 		hookFuncMeasure = M.getOrInsertFunction("measureKernel", VoidTy, Type::getInt32Ty(C), NULL);
 
-//// auto-detect CUDA kernels on host side 
+//// auto-detect CUDA kernels on host side
 		Function* fcrf = M.getFunction("__cuda_register_globals");
 		if (fcrf) //just in case
 		{
-			//errs() << " I am in __cuda_register_globals function"; 
+			//errs() << " I am in __cuda_register_globals function";
 			//errs() << "\n";
-			errs() << " I found these CUDA kernel functions: "; 
+			errs() << " I found these CUDA kernel functions: ";
 			errs() << "\n";
 			for(Function::iterator BB = fcrf->begin(), E = fcrf->end(); BB != E; ++BB)
 	    			for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI)
@@ -2817,18 +2820,18 @@ namespace{
 					}
 		}
 
-////	
+////
                 errs() << "\nLinking Analysis Functions:\n\n";
 		for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F)
 		{	// it is all about mangling
 			StringRef fn = F->getName();
             		std::string fname = fn.str();
 		//	errs() << fname << "\n";
-			
+
 			int ii;
 			for (ii=0; ii<AFsize; ii++)
-			if ( fname.find(AF[ii]) != std::string::npos ) 
-			{	
+			if ( fname.find(AF[ii]) != std::string::npos )
+			{
 				errs() << AF[ii] << " is changed to "  ;
 				AF[ii].assign(fname);
 				errs() << AF[ii] <<  "\n";
@@ -2848,8 +2851,8 @@ namespace{
 					break;
 				}
 
-			if (!yeskernel) 
-			{	
+			if (!yeskernel)
+			{
 				for(Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB)
 					instru_host_measure::runOnBasicBlock72(BB); // this is for non-kernel only
 			}
@@ -2859,7 +2862,7 @@ namespace{
 
 		errs() << " done host_time_measure pass.\n\n" ;
         }
-// 
+//
 
         virtual bool runOnBasicBlock72(Function::iterator &BB)
         {
@@ -2875,7 +2878,7 @@ namespace{
 			{
 				Function* f = op->getCalledFunction();
 				if (!f) //this check is important for: %call =  call deferenceble bla bla...
-					continue;	
+					continue;
 				StringRef callee = op->getCalledFunction() -> getName();
                                 std::string calleeName = callee.str();
 
@@ -2902,10 +2905,10 @@ namespace{
 				builder.SetInsertPoint( &(*BB), ++builder.GetInsertPoint() ); // insert after op
 				builder.CreateCall( hookSync, {} );
 				builder.CreateCall( hookMeasure, builder.getInt32(2) );
-		
+
 			}
 		}
-	
+
            	return true;
         }
 
@@ -2942,4 +2945,3 @@ static RegisterPass<instru_kernel_basic> XXYXXX("instru-kernel-basic", "CUDA ker
 
 char instru_host_measure::ID = 0;
 static RegisterPass<instru_host_measure> XXYYXXX("instru-host-measure", "host side time measurement", false, false);
-
