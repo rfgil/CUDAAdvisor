@@ -2068,8 +2068,8 @@ namespace{
 				//	ai2->setAlignment(8);
 				//	ai3->setAlignment(8);
 
-		                        //Function::ArgumentListType &args = bb_func -> getArgumentList();
-
+		            //Function::ArgumentListType &args = bb_func -> getArgumentList();
+					Function::iterator_range<Argument *> args = bb_func->args();
 					errs() << " asdfgg size = "  << args.size() << "\n";
 
 					Value* arg_ptrhead; //, *arg_stack; //, *arg_stackHeight;
@@ -2725,7 +2725,8 @@ namespace{
 		{
 			errs() << "location : "<< f_name.str() << ". in entry block\n";
 
-			//Function::ArgumentListType &args = bb_func -> getArgumentList();
+			// Function::ArgumentListType &args = bb_func -> getArgumentList(); AQUI
+			Function::iterator_range<Argument *> args = bb_func->args();
 
 			int ii=0; //the next 10 lines are very iffy
 			Value* arg1, *arg2, *arg3;
@@ -2741,7 +2742,7 @@ namespace{
                         }
 */
 			//for (auto &a :  args )
- 			for (auto &a :  bb_func->args())
+ 			for (auto &a :  args)
 			{
 				if ( ii==args.size()-1 )
 					arg1 = (Value*) &a;
