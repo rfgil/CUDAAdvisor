@@ -14,6 +14,9 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+
+#include "llvm/ADT/iterator_range.h"
+
 #include <iostream>
 
 #include "common.h"
@@ -2069,7 +2072,7 @@ namespace{
 				//	ai3->setAlignment(8);
 
 		            //Function::ArgumentListType &args = bb_func -> getArgumentList();
-					Function::iterator_range<Argument *> args = bb_func->args();
+					iterator_range<Argument *> args = bb_func->args();
 					errs() << " asdfgg size = "  << args.size() << "\n";
 
 					Value* arg_ptrhead; //, *arg_stack; //, *arg_stackHeight;
