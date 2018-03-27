@@ -1386,7 +1386,7 @@ namespace{
                         //set names for each argument
                         //Function::ArgumentListType &newargs = fc -> getArgumentList();
                         //Function::ArgumentListType::iterator newiter = newargs.begin();
-						Function::arg_iterator newiter = F->args().arg_begin(); // AQUI
+						Function::arg_iterator newiter = F->arg_begin(); // AQUI
 
                         //for ( auto &a: args)
 						for ( auto &a : F->args())
@@ -1543,7 +1543,7 @@ namespace{
 			//set names for each argument
 			//Function::ArgumentListType &newargs = fc -> getArgumentList();
 			//Function::ArgumentListType::iterator newiter = newargs.begin();
-			Function::arg_iterator newiter = F->args().arg_begin(); // AQUI
+			Function::arg_iterator newiter = F->arg_begin(); // AQUI
 
 			//for ( auto &a: args)
 			for ( auto &a: F->args())
@@ -1860,7 +1860,7 @@ namespace{
 			//set names for each argument
 			//Function::ArgumentListType &newargs = fc -> getArgumentList();
 			//Function::ArgumentListType::iterator newiter = newargs.begin();
-			Function::arg_iterator newiter = F->args().arg_begin(); // AQUI
+			Function::arg_iterator newiter = F->arg_begin(); // AQUI
 
 			//for ( auto &a: args)
 			for ( auto &a: F->args())
